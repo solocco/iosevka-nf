@@ -101,6 +101,20 @@ jobs:
             IosevkaNerd-TTF-${{ needs.detect-version.outputs.version }}.tar.xz
           retention-days: 30
 
+      - name: Create GitHub Release if not exists
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "${{ needs.detect-version.outputs.tag }}" \
+            --repo ${{ github.repository }} \
+            > /dev/null 2>&1 || \
+          gh release create "${{ needs.detect-version.outputs.tag }}" \
+            --repo ${{ github.repository }} \
+            --title "IosevkaNerd ${{ needs.detect-version.outputs.tag }}" \
+            --notes "Iosevka ${{ needs.detect-version.outputs.tag }} patched with Nerd Fonts (--complete)" \
+            --latest
+
       - name: Upload to GitHub Release (if on main branch)
         if: github.ref == 'refs/heads/main'
         env:
