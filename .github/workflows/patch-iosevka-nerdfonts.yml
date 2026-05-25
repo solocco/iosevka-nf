@@ -1,0 +1,118 @@
+# .github/workflows/patch-iosevka-nerdfonts.yml
+name: Patch Iosevka with Nerd Fonts
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Iosevka version to patch (leave empty for latest)"
+        required: false
+        type: string
+  schedule:
+    # Auto-run every Monday at 00:00 UTC (opsional, bisa dihapus)
+    - cron: "0 0 * * 1"
+
+jobs:
+  detect-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
+      tag: ${{ steps.get-version.outputs.tag }}
+    steps:
+      - name: Get latest Iosevka version
+        id: get-version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [[ -n "${{ inputs.version }}" ]]; then
+            # Use manual input if provided
+            VERSION="${{ inputs.version }}"
+            TAG="v${VERSION}"
+          else
+            # Auto-detect latest stable release from be5invis/Iosevka
+            TAG=$(gh release list --repo be5invis/Iosevka --limit 50 \
+              --json tagName,isPrerelease,isDraft \
+              --jq '.[] | select(.isPrerelease == false and .isDraft == false) | .tagName' \
+              | head -n1)
+            VERSION="${TAG#v}"  # Remove 'v' prefix
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "✓ Using Iosevka version: $VERSION (tag: $TAG)"
+
+  patch:
+    needs: detect-version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Iosevka TTF release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "${{ needs.detect-version.outputs.tag }}" \
+            --repo be5invis/Iosevka \
+            --pattern "PkgTTF-iosevka-${{ needs.detect-version.outputs.version }}.zip" \
+            --output "iosevka-ttf.zip"
+
+      - name: Extract fonts
+        run: |
+          mkdir -p fonts selected patched
+          unzip -q iosevka-ttf.zip -d fonts
+
+      - name: Copy only selected font styles
+        run: |
+          for style in regular italic medium mediumitalic bold bolditalic; do
+            src="fonts/iosevka-${style}.ttf"
+            if [[ -f "$src" ]]; then
+              cp "$src" selected/
+              echo "✓ Copied: iosevka-${style}.ttf"
+            else
+              echo "⚠ Warning: iosevka-${style}.ttf not found"
+            fi
+          done
+          # Verify we have at least one font to patch
+          if [[ -z "$(ls -A selected 2>/dev/null)" ]]; then
+            echo "❌ No fonts found to patch!"
+            exit 1
+          fi
+
+      - name: Patch with Nerd Fonts
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}/selected:/in \
+            -v ${{ github.workspace }}/patched:/out \
+            -e PN=4 \
+            nerdfonts/patcher \
+            --complete \
+            --makegroups 6 \
+            --no-progressbars
+
+      - name: Package patched fonts
+        run: |
+          cd patched
+          zip -rq "$GITHUB_WORKSPACE/IosevkaNerd-TTF-${{ needs.detect-version.outputs.version }}.zip" *.ttf
+          tar cJf "$GITHUB_WORKSPACE/IosevkaNerd-TTF-${{ needs.detect-version.outputs.version }}.tar.xz" *.ttf
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: IosevkaNerd-TTF-${{ needs.detect-version.outputs.version }}
+          path: |
+            IosevkaNerd-TTF-${{ needs.detect-version.outputs.version }}.zip
+            IosevkaNerd-TTF-${{ needs.detect-version.outputs.version }}.tar.xz
+          retention-days: 30
+
+      - name: Upload to GitHub Release (if on main branch)
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ needs.detect-version.outputs.tag }}" \
+            IosevkaNerd-TTF-${{ needs.detect-version.outputs.version }}.zip \
+            IosevkaNerd-TTF-${{ needs.detect-version.outputs.version }}.tar.xz \
+            --repo ${{ github.repository }} \
+            --clobber
