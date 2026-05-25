@@ -1,4 +1,3 @@
-# .github/workflows/patch-iosevka-nerdfonts.yml
 name: Patch Iosevka with Nerd Fonts
 
 on:
@@ -9,7 +8,6 @@ on:
         required: false
         type: string
   schedule:
-    # Auto-run every Monday at 00:00 UTC (opsional, bisa dihapus)
     - cron: "0 0 * * 1"
 
 jobs:
@@ -25,16 +23,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           if [[ -n "${{ inputs.version }}" ]]; then
-            # Use manual input if provided
             VERSION="${{ inputs.version }}"
             TAG="v${VERSION}"
           else
-            # Auto-detect latest stable release from be5invis/Iosevka
             TAG=$(gh release list --repo be5invis/Iosevka --limit 50 \
               --json tagName,isPrerelease,isDraft \
               --jq '.[] | select(.isPrerelease == false and .isDraft == false) | .tagName' \
               | head -n1)
-            VERSION="${TAG#v}"  # Remove 'v' prefix
+            VERSION="${TAG#v}"
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag=$TAG" >> $GITHUB_OUTPUT
@@ -55,7 +51,7 @@ jobs:
         run: |
           gh release download "${{ needs.detect-version.outputs.tag }}" \
             --repo be5invis/Iosevka \
-            --pattern "PkgTTF-iosevka-${{ needs.detect-version.outputs.version }}.zip" \
+            --pattern "PkgTTF-Iosevka-${{ needs.detect-version.outputs.version }}.zip" \
             --output "iosevka-ttf.zip"
 
       - name: Extract fonts
@@ -65,16 +61,15 @@ jobs:
 
       - name: Copy only selected font styles
         run: |
-          for style in regular italic medium mediumitalic bold bolditalic; do
-            src="fonts/iosevka-${style}.ttf"
+          for style in Regular Italic Medium MediumItalic Bold BoldItalic; do
+            src="fonts/Iosevka-${style}.ttf"
             if [[ -f "$src" ]]; then
               cp "$src" selected/
-              echo "✓ Copied: iosevka-${style}.ttf"
+              echo "✓ Copied: Iosevka-${style}.ttf"
             else
-              echo "⚠ Warning: iosevka-${style}.ttf not found"
+              echo "⚠ Warning: Iosevka-${style}.ttf not found"
             fi
           done
-          # Verify we have at least one font to patch
           if [[ -z "$(ls -A selected 2>/dev/null)" ]]; then
             echo "❌ No fonts found to patch!"
             exit 1
