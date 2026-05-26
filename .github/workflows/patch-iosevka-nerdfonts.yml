@@ -92,6 +92,12 @@ jobs:
           zip -rq "$GITHUB_WORKSPACE/IosevkaNerd-TTF-${{ needs.detect-version.outputs.version }}.zip" *.ttf
           tar cJf "$GITHUB_WORKSPACE/IosevkaNerd-TTF-${{ needs.detect-version.outputs.version }}.tar.xz" *.ttf
 
+      - name: Package original fonts
+        run: |
+          cd selected
+          zip -rq "$GITHUB_WORKSPACE/Iosevka-TTF-${{ needs.detect-version.outputs.version }}.zip" *.ttf
+          tar cJf "$GITHUB_WORKSPACE/Iosevka-TTF-${{ needs.detect-version.outputs.version }}.tar.xz" *.ttf
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -99,6 +105,8 @@ jobs:
           path: |
             IosevkaNerd-TTF-${{ needs.detect-version.outputs.version }}.zip
             IosevkaNerd-TTF-${{ needs.detect-version.outputs.version }}.tar.xz
+            Iosevka-TTF-${{ needs.detect-version.outputs.version }}.zip
+            Iosevka-TTF-${{ needs.detect-version.outputs.version }}.tar.xz
           retention-days: 30
 
       - name: Create GitHub Release if not exists
@@ -123,5 +131,7 @@ jobs:
           gh release upload "${{ needs.detect-version.outputs.tag }}" \
             IosevkaNerd-TTF-${{ needs.detect-version.outputs.version }}.zip \
             IosevkaNerd-TTF-${{ needs.detect-version.outputs.version }}.tar.xz \
+            Iosevka-TTF-${{ needs.detect-version.outputs.version }}.zip \
+            Iosevka-TTF-${{ needs.detect-version.outputs.version }}.tar.xz \
             --repo ${{ github.repository }} \
             --clobber
