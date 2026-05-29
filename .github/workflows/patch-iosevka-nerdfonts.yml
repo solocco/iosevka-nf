@@ -120,23 +120,23 @@ jobs:
         run: |
           gh release download "${{ needs.detect-version.outputs.tag }}" \
             --repo be5invis/Iosevka \
-            --pattern "PkgTTF-IosevkaPropo-${{ needs.detect-version.outputs.version }}.zip" \
-            --output "iosevka-propo-ttf.zip"
+            --pattern "PkgTTF-Iosevka-${{ needs.detect-version.outputs.version }}.zip" \
+            --output "iosevka-ttf.zip"
 
       - name: Extract fonts
         run: |
           mkdir -p fonts selected patched
-          unzip -q iosevka-propo-ttf.zip -d fonts
+          unzip -q iosevka-ttf.zip -d fonts
 
       - name: Copy only selected font styles
         run: |
           for style in Regular Italic Medium MediumItalic Bold BoldItalic; do
-            src="fonts/IosevkaPropo-${style}.ttf"
+            src="fonts/Iosevka-${style}.ttf"
             if [[ -f "$src" ]]; then
               cp "$src" selected/
-              echo "✓ Copied: IosevkaPropo-${style}.ttf"
+              echo "✓ Copied: Iosevka-${style}.ttf"
             else
-              echo "⚠ Warning: IosevkaPropo-${style}.ttf not found"
+              echo "⚠ Warning: Iosevka-${style}.ttf not found"
             fi
           done
           if [[ -z "$(ls -A selected 2>/dev/null)" ]]; then
@@ -158,24 +158,16 @@ jobs:
       - name: Package patched fonts
         run: |
           cd patched
-          zip -rq "$GITHUB_WORKSPACE/IosevkaPropoNerd-TTF-${{ needs.detect-version.outputs.version }}.zip" *.ttf
-          tar cJf "$GITHUB_WORKSPACE/IosevkaPropoNerd-TTF-${{ needs.detect-version.outputs.version }}.tar.xz" *.ttf
-
-      - name: Package original fonts
-        run: |
-          cd selected
-          zip -rq "$GITHUB_WORKSPACE/IosevkaPropo-TTF-${{ needs.detect-version.outputs.version }}.zip" *.ttf
-          tar cJf "$GITHUB_WORKSPACE/IosevkaPropo-TTF-${{ needs.detect-version.outputs.version }}.tar.xz" *.ttf
+          zip -rq "$GITHUB_WORKSPACE/IosevkaNerdPropo-TTF-${{ needs.detect-version.outputs.version }}.zip" *.ttf
+          tar cJf "$GITHUB_WORKSPACE/IosevkaNerdPropo-TTF-${{ needs.detect-version.outputs.version }}.tar.xz" *.ttf
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: propo-${{ needs.detect-version.outputs.version }}
           path: |
-            IosevkaPropoNerd-TTF-${{ needs.detect-version.outputs.version }}.zip
-            IosevkaPropoNerd-TTF-${{ needs.detect-version.outputs.version }}.tar.xz
-            IosevkaPropo-TTF-${{ needs.detect-version.outputs.version }}.zip
-            IosevkaPropo-TTF-${{ needs.detect-version.outputs.version }}.tar.xz
+            IosevkaNerdPropo-TTF-${{ needs.detect-version.outputs.version }}.zip
+            IosevkaNerdPropo-TTF-${{ needs.detect-version.outputs.version }}.tar.xz
           retention-days: 30
 
   release:
@@ -219,9 +211,7 @@ jobs:
             dist/IosevkaNerd-TTF-${{ needs.detect-version.outputs.version }}.tar.xz \
             dist/Iosevka-TTF-${{ needs.detect-version.outputs.version }}.zip \
             dist/Iosevka-TTF-${{ needs.detect-version.outputs.version }}.tar.xz \
-            dist/IosevkaPropoNerd-TTF-${{ needs.detect-version.outputs.version }}.zip \
-            dist/IosevkaPropoNerd-TTF-${{ needs.detect-version.outputs.version }}.tar.xz \
-            dist/IosevkaPropo-TTF-${{ needs.detect-version.outputs.version }}.zip \
-            dist/IosevkaPropo-TTF-${{ needs.detect-version.outputs.version }}.tar.xz \
+            dist/IosevkaNerdPropo-TTF-${{ needs.detect-version.outputs.version }}.zip \
+            dist/IosevkaNerdPropo-TTF-${{ needs.detect-version.outputs.version }}.tar.xz \
             --repo ${{ github.repository }} \
             --clobber
